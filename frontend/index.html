@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndLex: Indic Language Explorer and Word Builder with AP90 Lookup</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(135deg, #ff671f, #af6f4c);
+            color: white;
+            padding: 1.5em 1em;
+        }
+        header-top {
+            display: flex;
+        }
+        #header-main {
+            text-align: left;
+        }
+        #header-main h1 {
+            margin: 0 0 0.25em 0;
+        }
+        #header-main p {
+            margin: 0;
+        }
+        #login-panel {
+            float: right;
+            text-align: right;
+            margin-top: -2.5em;
+        }
+        #login-panel form {
+            display: inline-flex;
+            gap: 0.3em;
+            align-items: center;
+            font-size: 0.85em;
+        }
+        #login-panel input {
+            padding: 0.25em 0.4em;
+            border-radius: 4px;
+            border: none;
+            font-size: 0.8em;
+        }
+        #login-panel button {
+            padding: 0.3em 0.6em;
+            border-radius: 4px;
+            border: none;
+            background-color: #ffffff;
+            color: #2f8d46;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        #login-panel button:hover {
+            background-color: #e8f5e9;
+        }
+        #login-status {
+            font-size: 0.8em;
+            margin-top: 0.2em;
+        }
+        nav {
+            background-color: #046a38;
+        }
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        nav li {
+            margin: 0;
+        }
+        nav button {
+            border: none;
+            background: none;
+            color: #fff;
+            padding: 1em 1.5em;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        nav button:hover {
+            background-color: #06038d;
+        }
+        main {
+            flex: 1;
+            padding: 2em 1em;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #content {
+            background-color: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #2f8d46;
+            margin-top: 0;
+        }
+        form {
+            max-width: 650px;
+            margin: 1em auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75em;
+        }
+        form label {
+            text-align: left;
+            font-weight: bold;
+        }
+        form input, form textarea, form select {
+            padding: 0.75em;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        form button[type="submit"] {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 0.85em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        form button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        #word-result, #api-result {
+            margin-top: 1.5em;
+            padding: 1em;
+            border-radius: 8px;
+            text-align: left;
+        }
+        #word-result {
+            background-color: #f7fff7;
+            border: 1px solid #c8e6c9;
+        }
+        #word-result h3 {
+            margin-top: 0;
+            color: #2f8d46;
+        }
+        #api-result {
+            background-color: #f0f7ff;
+            border: 1px solid #bbdefb;
+        }
+        #api-result h3 {
+            margin-top: 0;
+            color: #1565c0;
+        }
+        #closest-match {
+            margin: 0.5em 0;
+            font-weight: bold;
+        }
+        #headword-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 0.5em;
+        }
+        #headword-table th,
+        #headword-table td {
+            border: 1px solid #bbdefb;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        #headword-table thead {
+            background-color: #e3f2fd;
+        }
+        #api-raw {
+            white-space: pre-wrap;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 0.9em;
+            max-height: 250px;
+            overflow: auto;
+            margin-top: 1em;
+        }
+        .hidden {
+            display: none;
+        }
+        /* History table */
+        #history-controls {
+            margin-top: 1em;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5em;
+            align-items: center;
+            font-size: 0.95em;
+        }
+        #history-controls input {
+            padding: 0.4em 0.6em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+        }
+        #history-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1em;
+        }
+        #history-table th,
+        #history-table td {
+            border: 1px solid #ccc;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        #history-table thead {
+            background-color: #eee;
+        }
+        #history-table th.sortable {
+            cursor: pointer;
+        }
+        #history-table th.sortable::after {
+            content: ' ⇅';
+            font-size: 0.8em;
+            color: #666;
+        }
+        #history-table th.sortable.sorted-asc::after {
+            content: ' ↑';
+        }
+        #history-table th.sortable.sorted-desc::after {
+            content: ' ↓';
+        }
+        .history-actions button {
+            margin-right: 4px;
+        }
+        .admin-only {
+            display: none;
+        }
+        /* Stats box */
+        #stats-box {
+            margin-top: 1em;
+            padding: 0.75em 1em;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            font-size: 0.95em;
+        }
+        /* Dashboard */
+        #dashboard-container {
+            max-width: 900px;
+            margin: 1.5em auto;
+        }
+        #dashboard-container canvas {
+            width: 100%;
+            max-height: 480px;
+        }
+        @media (max-width: 768px) {
+            nav ul { flex-direction: column; }
+            #history-controls { flex-direction: column; align-items: flex-start; }
+            #login-panel {
+                float: none;
+                text-align: left;
+                margin-top: 0.5em;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div id="app">
+    <header>
+        <div id="header-main">
+            <h1>IndLex</h1>
+            <p>Indic Lexicon Builder and Explorer</p>
+        </div>
+        <div id="login-panel">
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="username">
+                <input type="password" id="login-password" placeholder="password">
+                <button type="submit">Login</button>
+                <button type="button" id="logout-button" class="hidden">Logout</button>
+            </form>
+            <div id="login-status">Not logged in</div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><button type="button" data-view="home">Home</button></li>
+            <li><button type="button" data-view="dashboard">Dashboard</button></li>
+            <li><button type="button" data-view="history">History</button></li>
+            <li><button type="button" data-view="about">About</button></li>
+            <li><button type="button" data-view="contact">Contact</button></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div id="content">
+            <!-- HOME VIEW -->
+            <section id="view-home">
+                <h2>Word Builder: Prefix–Root–Suffix</h2>
+                <p>Enter prefix, root, suffix, choose the language of the root, then look it up via a Flask + SQLite backend that calls the AP90 dictionary API.</p>
+
+                <form id="word-form">
+                    <label for="language">Language of root word</label>
+                    <select id="language">
+                        <option value="Kannada">Kannada</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Oriya">Oriya</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Sanskrit">Sanskrit</option>
+                        <option value="Other">Other</option>
+                    </select>
+
+                    <label for="prefix">Prefix</label>
+                    <input type="text" id="prefix" placeholder="e.g., pra" />
+
+                    <label for="root">Root</label>
+                    <input type="text" id="root" placeholder="e.g., gam" required />
+
+                    <label for="suffix">Suffix</label>
+                    <input type="text" id="suffix" placeholder="e.g., a" />
+
+                    <label for="rootMeaning">Meaning of the root (your understanding)</label>
+                    <textarea id="rootMeaning" rows="3" placeholder="e.g., 'gam' means to go" required></textarea>
+
+                    <button type="submit">Build Word & Lookup Root</button>
+                </form>
+
+                <div id="word-result" class="hidden">
+                    <h3>Result</h3>
+                    <p><strong>Word:</strong> <span id="full-word"></span></p>
+                    <p><strong>Breakdown:</strong> <span id="breakdown"></span></p>
+                    <p><strong>Root language:</strong> <span id="root-language-text"></span></p>
+                    <p><strong>Root meaning:</strong> <span id="root-meaning-text"></span></p>
+                    <p><strong>Interpretation:</strong> <span id="interpretation"></span></p>
+                </div>
+
+                <div id="api-result" class="hidden">
+                    <h3>AP90 Dictionary (via Flask backend)</h3>
+                    <p id="api-status"></p>
+
+                    <p id="closest-match" class="hidden"></p>
+
+                    <table id="headword-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Headword (SLP1)</th>
+                                <th>Distance to root</th>
+                                <th>SimilarityScore</th>
+                            </tr>
+                        </thead>
+                        <tbody id="headword-tbody">
+                        </tbody>
+                    </table>
+
+                    <div id="api-raw"></div>
+                </div>
+            </section>
+
+            <!-- DASHBOARD VIEW -->
+            <section id="view-dashboard" class="hidden">
+                <h2>Indic Language Explorer Dashboard</h2>
+                <p>Overview of total words and %Sanskrit by language.</p>
+                <div id="dashboard-container">
+                    <canvas id="langDashboardChart"></canvas>
+                </div>
+            </section>
+
+            <!-- HISTORY VIEW -->
+            <section id="view-history" class="hidden">
+                <h2>Saved Lookups (History)</h2>
+                <div id="stats-box">
+                    <strong>Stats:</strong>
+                    <span id="stats-text">Loading...</span>
+                </div>
+
+                <div id="history-controls">
+                    <label>
+                        Filter Root:
+                        <input type="text" id="filter-root" placeholder="root contains...">
+                    </label>
+                    <label>
+                        Filter Language:
+                        <input type="text" id="filter-language" placeholder="e.g., Kannada">
+                    </label>
+                    <label>
+                        Filter Meaning:
+                        <input type="text" id="filter-meaning" placeholder="meaning contains...">
+                    </label>
+                    <button type="button" id="clear-filters">Clear Filters</button>
+                    <button type="button" id="refresh-history">Refresh Data</button>
+                </div>
+
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-key="id">ID</th>
+                            <th class="sortable" data-key="root">Root</th>
+                            <th class="sortable" data-key="language">Language</th>
+                            <th class="sortable" data-key="meaning">Meaning</th>
+                            <th class="sortable" data-key="best_headword">Best Headword</th>
+                            <th class="sortable" data-key="distance_to_root">Distance to Root</th>
+                            <th class="sortable" data-key="similarity_score">SimilarityScore</th>
+                            <th class="sortable" data-key="created_at">Created At</th>
+                            <th class="sortable" data-key="inserted_by">Inserted By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- ABOUT VIEW -->
+            <section id="view-about" class="hidden">
+                <h2>About Me</h2>
+                <p>Tech professional in Bengaluru with expertise in data science, analytics, and cloud services.</p>
+                <ul>
+                    <li>Machine Learning &amp; Generative AI</li>
+                    <li>Business Development Strategies</li>
+                    <li>Fitness tracking &amp; Tech shopping</li>
+                    <li>Latin American history enthusiast</li>
+                </ul>
+            </section>
+
+            <!-- CONTACT VIEW -->
+            <section id="view-contact" class="hidden">
+                <h2>Contact</h2>
+                <p>Get in touch for collaborations or discussions on data projects.</p>
+                <form id="contact-form">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" required>
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" required>
+                    <label for="message">Message:</label>
+                    <textarea id="message" rows="5" required></textarea>
+                    <button type="submit">Send</button>
+                </form>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:5001';
+    let langDashboardChart = null;
+    let historyData = [];
+    let currentSort = { key: 'id', direction: 'asc' };
+    let currentUser = { authenticated: false, user_id: null, username: null, roles: [] };
+
+    function isAdmin() {
+        return currentUser.roles && currentUser.roles.includes('admin');
+    }
+
+    function isEditor() {
+        return currentUser.roles && currentUser.roles.includes('editor');
+    }
+
+    function canAddWords() {
+        return currentUser.authenticated && (isAdmin() || isEditor());
+    }
+
+    function canModifyRow(row) {
+        if (!currentUser.authenticated) return false;
+        if (isAdmin()) return true;
+
+        if (isEditor()) {
+            if (row.created_by_user_id == null) return false;
+            return Number(row.created_by_user_id) === Number(currentUser.user_id);
+        }
+        return false;
+    }
+
+
+    function updateLoginUI() {
+        const status = document.getElementById('login-status');
+        const logoutBtn = document.getElementById('logout-button');
+        const loginUsername = document.getElementById('login-username');
+        const loginPassword = document.getElementById('login-password');
+
+        if (currentUser.authenticated) {
+            status.textContent = `Logged in as ${currentUser.username} [${currentUser.roles.join(', ') || 'no roles'}]`;
+            logoutBtn.classList.remove('hidden');
+            loginUsername.classList.add('hidden');
+            loginPassword.classList.add('hidden');
+        } else {
+            status.textContent = 'Not logged in';
+            logoutBtn.classList.add('hidden');
+            loginUsername.classList.remove('hidden');
+            loginPassword.classList.remove('hidden');
+        }
+
+        // Toggle admin-only buttons in history
+        document.querySelectorAll('.admin-only').forEach(btn => {
+            if (isAdmin()) btn.style.display = 'inline-block';
+            else btn.style.display = 'none';
+        });
+    }
+
+    async function fetchCurrentUser() {
+        try {
+            const res = await fetch(`${API_BASE}/api/me`, {
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (data.authenticated) {
+                currentUser = {
+                authenticated: true,
+                user_id: data.user_id,
+                username: data.username,
+                roles: data.roles || []
+            };
+            } else {
+                currentUser = { authenticated: false, user_id: null, username: null, roles: [] };
+            }
+        } catch (e) {
+            currentUser = { authenticated: false, user_id: null, username: null, roles: [] };
+        }
+        updateLoginUI();
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        if (!username || !password) {
+            alert('Enter username and password');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || `Login failed (${res.status})`);
+                return;
+            }
+            currentUser = {
+                    authenticated: true,
+                    user_id: data.user_id,
+                    username: data.username,
+                    roles: data.roles || []
+                };
+            document.getElementById('login-password').value = '';
+            updateLoginUI();
+            // Refresh history/dashboard to ensure admin controls update
+            loadHistory();
+            loadStats();
+            loadDashboard();
+        } catch (err) {
+            alert(`Login error: ${err}`);
+        }
+    });
+
+    document.getElementById('logout-button').addEventListener('click', async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (!res.ok) {
+                alert(`Logout failed (${res.status})`);
+            }
+        } catch (e) {
+            console.error('Logout error', e);
+        }
+        currentUser = { authenticated: false, user_id: null, username: null, roles: [] };
+        updateLoginUI();
+        loadHistory();
+        loadStats();
+        loadDashboard();
+    });
+
+    // View switcher
+    document.querySelector('nav').addEventListener('click', (e) => {
+        if (e.target.matches('button[data-view]')) {
+            const view = e.target.getAttribute('data-view');
+            ['home', 'dashboard', 'history', 'about', 'contact'].forEach(v => {
+                const section = document.getElementById('view-' + v);
+                if (!section) return;
+                if (v === view) section.classList.remove('hidden');
+                else section.classList.add('hidden');
+            });
+            if (view === 'history') {
+                loadStats();
+                loadHistory();
+            } else if (view === 'dashboard') {
+                loadDashboard();
+            }
+        }
+    });
+
+    // Word builder and rest of JS is identical to last version, but all fetches include credentials where needed:
+
+    document.getElementById('word-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const language = (document.getElementById('language').value || '').trim();
+        const prefix = (document.getElementById('prefix').value || '').trim();
+        const root = (document.getElementById('root').value || '').trim();
+        const suffix = (document.getElementById('suffix').value || '').trim();
+        const rootMeaning = (document.getElementById('rootMeaning').value || '').trim();
+
+        if (!root || !rootMeaning) {
+            alert('Please enter at least the root and its meaning.');
+            return;
+        }
+
+        const fullWord = `${prefix}${root}${suffix}`;
+        const breakdownParts = [];
+        if (prefix) breakdownParts.push(`Prefix: "${prefix}"`);
+        breakdownParts.push(`Root: "${root}"`);
+        if (suffix) breakdownParts.push(`Suffix: "${suffix}"`);
+
+        document.getElementById('full-word').textContent = fullWord;
+        document.getElementById('breakdown').textContent = breakdownParts.join(' | ');
+        document.getElementById('root-language-text').textContent = language || 'Unknown';
+        document.getElementById('root-meaning-text').textContent = rootMeaning;
+        document.getElementById('interpretation').textContent =
+            `The word "${fullWord}" is built from the root "${root}" (${language || 'Unknown'}), which you defined as: ${rootMeaning}.`;
+
+        document.getElementById('word-result').classList.remove('hidden');
+
+        await lookupRootInDictionary(root, rootMeaning, language);
+    });
+
+    document.getElementById('contact-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const name = document.getElementById('name').value;
+        alert(`Thanks, ${name}! Message sent successfully. (Demo mode)`);
+        event.target.reset();
+    });
+
+    document.getElementById('refresh-history').addEventListener('click', () => {
+        loadStats();
+        loadHistory();
+    });
+
+    document.getElementById('clear-filters').addEventListener('click', () => {
+        document.getElementById('filter-root').value = '';
+        document.getElementById('filter-language').value = '';
+        document.getElementById('filter-meaning').value = '';
+        renderHistoryTable();
+    });
+
+    document.getElementById('filter-root').addEventListener('input', renderHistoryTable);
+    document.getElementById('filter-language').addEventListener('input', renderHistoryTable);
+    document.getElementById('filter-meaning').addEventListener('input', renderHistoryTable);
+
+    document.querySelectorAll('#history-table th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const key = th.dataset.key;
+            if (currentSort.key === key) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.key = key;
+                currentSort.direction = 'asc';
+            }
+            document.querySelectorAll('#history-table th.sortable').forEach(h => {
+                h.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            th.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            renderHistoryTable();
+        });
+    });
+
+    function levenshteinDistance(a, b) {
+        if (!a.length) return b.length;
+        if (!b.length) return a.length;
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) {
+            matrix[i] = [i];
+        }
+        for (let j = 0; j <= a.length; j++) {
+            matrix[0][j] = j;
+        }
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                const cost = b.charAt(i - 1) === a.charAt(j - 1) ? 0 : 1;
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j - 1] + cost
+                );
+            }
+        }
+        return matrix[b.length][a.length];
+    }
+
+    function computeSimilarityScore(distance, rootLength) {
+        if (!rootLength || !Number.isFinite(distance)) return 0;
+        const ratio = distance / rootLength;
+        if (ratio <= 0.33) return 1;
+        if (ratio <= 0.67) return 0.5;
+        return 0;
+    }
+
+    async function saveLookupToBackend(root, meaning, bestHeadword, similarityScore, language, distanceToRoot) {
+        // Only authenticated admins/editors can add new words to the database
+        if (!canAddWords()) {
+            return;
+        }
+
+        try {
+            await fetch(`${API_BASE}/api/saveLookup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    root,
+                    meaning,
+                    bestHeadword,
+                    similarityScore,
+                    language,
+                    distanceToRoot
+                })
+            });
+        } catch (e) {
+            console.error('Failed to save lookup', e);
+        }
+    }
+
+    async function lookupRootInDictionary(root, term, language) {
+        const apiResultDiv = document.getElementById('api-result');
+        const apiStatus = document.getElementById('api-status');
+        const apiRaw = document.getElementById('api-raw');
+        const headwordTbody = document.getElementById('headword-tbody');
+        const closestMatchEl = document.getElementById('closest-match');
+
+        apiResultDiv.classList.remove('hidden');
+        apiStatus.textContent = 'Looking up via Flask backend (DB + AP90)...';
+        apiRaw.textContent = '';
+        headwordTbody.innerHTML = '';
+        closestMatchEl.textContent = '';
+        closestMatchEl.classList.add('hidden');
+
+        try {
+            const url = `${API_BASE}/api/lookup_or_history?root=${encodeURIComponent(root)}&meaning=${encodeURIComponent(term)}&language=${encodeURIComponent(language || '')}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                credentials: 'include'
+            });
+
+            const text = await response.text();
+
+            if (!response.ok) {
+                apiStatus.textContent = `Backend HTTP ${response.status}. Raw response shown below.`;
+                apiRaw.textContent = text;
+                return;
+            }
+
+            let payload;
+            try {
+                payload = JSON.parse(text);
+            } catch (e) {
+                apiStatus.textContent = 'Backend returned 200 but body is not valid JSON.';
+                apiRaw.textContent = text;
+                return;
+            }
+
+            if (payload.source === 'db') {
+                const row = payload;
+                apiStatus.textContent = `Root "${row.root}" (language: ${row.language || 'Unknown'}) found in database (from ${row.created_at}).`;
+
+                const tr = document.createElement('tr');
+                const tdIndex = document.createElement('td');
+                const tdHeadword = document.createElement('td');
+                const tdDistance = document.createElement('td');
+                const tdSimilarity = document.createElement('td');
+
+                tdIndex.textContent = 1;
+                tdHeadword.textContent = row.best_headword || '';
+                tdDistance.textContent = row.distance_to_root != null ? row.distance_to_root : '';
+                tdSimilarity.textContent = row.similarity_score != null ? row.similarity_score : '';
+
+                tr.appendChild(tdIndex);
+                tr.appendChild(tdHeadword);
+                tr.appendChild(tdDistance);
+                tr.appendChild(tdSimilarity);
+                headwordTbody.appendChild(tr);
+
+                closestMatchEl.textContent =
+                    `From DB: closest match for root "${row.root}" is "${row.best_headword}", ` +
+                    `meaning "${row.meaning}", distance ${row.distance_to_root}, ` +
+                    `SimilarityScore ${row.similarity_score}, language ${row.language || 'Unknown'}.`;
+                closestMatchEl.classList.remove('hidden');
+
+                apiRaw.textContent = JSON.stringify(row, null, 2);
+                return;
+            }
+
+            let data = payload.raw || {};
+            let entries = [];
+            if (Array.isArray(data.entries)) {
+                entries = data.entries;
+            } else if (data.data && Array.isArray(data.data.entries)) {
+                entries = data.data.entries;
+            } else if (Array.isArray(data)) {
+                entries = data;
+            }
+
+            if (entries.length === 0) {
+                apiStatus.textContent = `No entries found for "${term}".`;
+            } else {
+                apiStatus.textContent = `Found ${entries.length} entries for "${term}". Sorted by distance to root "${root}".`;
+            }
+
+            const target = root.trim();
+            const rootLength = target.length;
+            let closest = null;
+            let bestDistance = Infinity;
+            let bestScore = 0;
+
+            if (target && entries.length > 0) {
+                entries = entries
+                    .map(entry => {
+                        const hw = (entry.headword_slp1 || '').trim();
+                        const distance = hw ? levenshteinDistance(target, hw) : Infinity;
+                        const similarityScore = computeSimilarityScore(distance, rootLength);
+                        if (hw && distance < bestDistance) {
+                            bestDistance = distance;
+                            closest = hw;
+                            bestScore = similarityScore;
+                        }
+                        return { ...entry, _distance: distance, _similarityScore: similarityScore };
+                    })
+                    .sort((a, b) => a._distance - b._distance);
+            }
+
+            if (closest && bestDistance !== Infinity) {
+                closestMatchEl.textContent =
+                    `Closest match to root "${root}" in headword_slp1: ${closest} ` +
+                    `(distance ${bestDistance}, SimilarityScore ${bestScore}).`;
+                closestMatchEl.classList.remove('hidden');
+
+                await saveLookupToBackend(root, term, closest, bestScore, language, bestDistance);
+            }
+
+            entries.forEach((entry, index) => {
+                const tr = document.createElement('tr');
+                const tdIndex = document.createElement('td');
+                const tdHeadword = document.createElement('td');
+                const tdDistance = document.createElement('td');
+                const tdSimilarity = document.createElement('td');
+
+                tdIndex.textContent = index + 1;
+                tdHeadword.textContent = entry.headword_slp1 || '';
+                tdDistance.textContent = Number.isFinite(entry._distance) ? entry._distance : '';
+                tdSimilarity.textContent =
+                    (entry._similarityScore != null && Number.isFinite(entry._distance))
+                        ? entry._similarityScore
+                        : '';
+
+                tr.appendChild(tdIndex);
+                tr.appendChild(tdHeadword);
+                tr.appendChild(tdDistance);
+                tr.appendChild(tdSimilarity);
+                headwordTbody.appendChild(tr);
+            });
+
+            const preview = entries.slice(0, 5).map(e => {
+                const clone = { ...e };
+                delete clone._distance;
+                delete clone._similarityScore;
+                return clone;
+            });
+            apiRaw.textContent = JSON.stringify(preview, null, 2);
+        } catch (err) {
+            apiStatus.textContent = 'Failed to reach Flask backend at http://localhost:5001.';
+            apiRaw.textContent = String(err);
+        }
+    }
+
+    async function loadStats() {
+        const statsText = document.getElementById('stats-text');
+        statsText.textContent = 'Loading...';
+        try {
+            const res = await fetch(`${API_BASE}/api/stats`, { credentials: 'include' });
+            const text = await res.text();
+            if (!res.ok) {
+                statsText.textContent = `Error loading stats: ${res.status}`;
+                return;
+            }
+            const stats = JSON.parse(text);
+            const byLang = (stats.by_language || [])
+                .map(l => `${l.language}: total=${l.total_roots}, totalScore=${l.total_similarity_score ?? 0}, %Sanskrit=${(l.percent_sanskrit ?? 0).toFixed(2)}`)
+                .join(' | ');
+            statsText.textContent =
+                `Total lookups: ${stats.total_lookups}, ` +
+                `Distinct roots: ${stats.distinct_roots}, ` +
+                `Total SimilarityScore: ${stats.total_similarity_score ?? 0}, ` +
+                `Avg SimilarityScore: ${stats.avg_similarity_score ?? 0}. ` +
+                `Per language (%Sanskrit metric): ${byLang || 'none'}`;
+        } catch (err) {
+            statsText.textContent = `Failed to load stats: ${err}`;
+        }
+    }
+
+    async function loadHistory() {
+        const tbody = document.getElementById('history-tbody');
+        tbody.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+        try {
+            const res = await fetch(`${API_BASE}/api/history`, { credentials: 'include' });
+            const text = await res.text();
+            if (!res.ok) {
+                tbody.innerHTML = `<tr><td colspan="10">Error loading history: ${res.status}</td></tr>`;
+                return;
+            }
+            let rows;
+            try {
+                rows = JSON.parse(text);
+            } catch {
+                tbody.innerHTML = `<tr><td colspan="10">Invalid JSON from backend</td></tr>`;
+                return;
+            }
+            if (!Array.isArray(rows) || rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10">No history yet.</td></tr>';
+                historyData = [];
+                return;
+            }
+            historyData = rows;
+            renderHistoryTable();
+        } catch (err) {
+            document.getElementById('history-tbody').innerHTML =
+                `<tr><td colspan="10">Failed to reach backend: ${err}</td></tr>`;
+        }
+    }
+
+    function renderHistoryTable() {
+        const tbody = document.getElementById('history-tbody');
+        tbody.innerHTML = '';
+
+        if (!Array.isArray(historyData) || historyData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10">No history yet.</td></tr>';
+            return;
+        }
+
+        const rootFilter = document.getElementById('filter-root').value.trim().toLowerCase();
+        const langFilter = document.getElementById('filter-language').value.trim().toLowerCase();
+        const meaningFilter = document.getElementById('filter-meaning').value.trim().toLowerCase();
+
+        let rows = historyData.slice();
+
+        rows = rows.filter(row => {
+            const root = (row.root || '').toLowerCase();
+            const lang = (row.language || '').toLowerCase();
+            const meaning = (row.meaning || '').toLowerCase();
+
+            if (rootFilter && !root.includes(rootFilter)) return false;
+            if (langFilter && !lang.includes(langFilter)) return false;
+            if (meaningFilter && !meaning.includes(meaningFilter)) return false;
+            return true;
+        });
+
+        const key = currentSort.key;
+        const dir = currentSort.direction;
+
+        rows.sort((a, b) => {
+            const va = a[key];
+            const vb = b[key];
+
+            if (va == null && vb == null) return 0;
+            if (va == null) return 1;
+            if (vb == null) return -1;
+
+            if (['id', 'distance_to_root', 'similarity_score'].includes(key)) {
+                const na = Number(va);
+                const nb = Number(vb);
+                if (isNaN(na) && isNaN(nb)) return 0;
+                if (isNaN(na)) return 1;
+                if (isNaN(nb)) return -1;
+                return dir === 'asc' ? na - nb : nb - na;
+            }
+
+            const sa = String(va).toLowerCase();
+            const sb = String(vb).toLowerCase();
+            if (sa < sb) return dir === 'asc' ? -1 : 1;
+            if (sa > sb) return dir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10">No rows match current filters.</td></tr>';
+            return;
+        }
+
+        rows.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.dataset.id = row.id;
+
+    // Show actions for: admin (any row) OR editor (only own rows)
+    const canModify =
+        (typeof canModifyRow === 'function')
+            ? canModifyRow(row)
+            : (isAdmin && isAdmin()); // fallback: if you haven't added canModifyRow yet
+
+    const actionsHtml = canModify
+        ? `<button type="button" data-action="edit">Edit</button>
+           <button type="button" data-action="delete">Delete</button>`
+        : '';
+
+    tr.innerHTML = `
+        <td>${row.id}</td>
+        <td>${row.root || ''}</td>
+        <td>${row.language || ''}</td>
+        <td>${row.meaning || ''}</td>
+        <td>${row.best_headword || ''}</td>
+        <td>${row.distance_to_root != null ? row.distance_to_root : ''}</td>
+        <td>${row.similarity_score != null ? row.similarity_score : ''}</td>
+        <td>${row.created_at || ''}</td>
+        <td>${row.inserted_by || ''}</td>
+        <td class="history-actions">${actionsHtml}</td>
+    `;
+
+    tbody.appendChild(tr);
+});
+
+
+        // Ensure admin-only visibility correct
+        updateLoginUI();
+    }
+
+    document.getElementById('history-tbody').addEventListener('click', async (e) => {
+        const btn = e.target;
+        if (!btn.dataset.action) return;
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        const id = tr.dataset.id;
+
+        const row = historyData.find(r => String(r.id) === String(id));
+        if (!row) return;
+
+        if (!canModifyRow(row)) {
+            alert('You can only modify/delete your own entries (unless you are admin).');
+            return;
+        }
+
+        if (btn.dataset.action === 'delete') {
+            const ok = confirm(`Delete lookup ${id}?`);
+            if (!ok) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/lookup/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (res.ok) {
+                    historyData = historyData.filter(r => String(r.id) !== String(id));
+                    loadStats();
+                    loadDashboard();
+                    renderHistoryTable();
+                } else {
+                    const text = await res.text();
+                    alert(`Delete failed (${res.status}): ${text}`);
+                }
+            } catch (err) {
+                alert(`Delete failed: ${err}`);
+            }
+        } else if (btn.dataset.action === 'edit') {
+            const language = prompt('Edit language:', tr.children[2].textContent) ?? '';
+            const meaning = prompt('Edit meaning:', tr.children[3].textContent) ?? '';
+            const bestHeadword = prompt('Edit best headword:', tr.children[4].textContent) ?? '';
+            const distStr = prompt('Edit distance to root:', tr.children[5].textContent) ?? '';
+            const simStr = prompt('Edit SimilarityScore (0, 0.5, 1):', tr.children[6].textContent) ?? '';
+            const distanceToRoot = distStr === '' ? null : Number(distStr);
+            const similarityScore = simStr === '' ? null : Number(simStr);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/lookup/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        meaning,
+                        bestHeadword,
+                        similarityScore,
+                        language,
+                        distanceToRoot
+                    })
+                });
+                const text = await res.text();
+                if (res.ok) {
+                    historyData = historyData.map(r => {
+                        if (String(r.id) === String(id)) {
+                            return {
+                                ...r,
+                                language,
+                                meaning,
+                                best_headword: bestHeadword,
+                                distance_to_root: distanceToRoot,
+                                similarity_score: similarityScore
+                            };
+                        }
+                        return r;
+                    });
+                    loadStats();
+                    loadDashboard();
+                    renderHistoryTable();
+                } else {
+                    alert(`Update failed (${res.status}): ${text}`);
+                }
+            } catch (err) {
+                alert(`Update failed: ${err}`);
+            }
+        }
+    });
+
+    async function loadDashboard() {
+        try {
+            const res = await fetch(`${API_BASE}/api/stats`, { credentials: 'include' });
+            const text = await res.text();
+            if (!res.ok) {
+                console.error('Dashboard stats error', res.status, text);
+                return;
+            }
+            const stats = JSON.parse(text);
+            const byLang = stats.by_language || [];
+            if (byLang.length === 0) {
+                if (langDashboardChart) {
+                    langDashboardChart.destroy();
+                    langDashboardChart = null;
+                }
+                return;
+            }
+
+            const labels = byLang.map(l => l.language);
+            const totalWords = byLang.map(l => l.total_roots);
+            const percentSanskrit = byLang.map(l => l.percent_sanskrit ?? 0);
+
+            const ctx = document.getElementById('langDashboardChart').getContext('2d');
+
+            if (langDashboardChart) {
+                langDashboardChart.destroy();
+            }
+
+            langDashboardChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total words',
+                            data: totalWords,
+                            backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                            borderColor: 'rgba(56, 142, 60, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'yWords'
+                        },
+                        {
+                            label: '%Sanskrit',
+                            data: percentSanskrit,
+                            type: 'line',
+                            borderColor: 'rgba(33, 150, 243, 1)',
+                            backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            yAxisID: 'yPercent',
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(33, 150, 243, 1)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    scales: {
+                        yWords: {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Total words'
+                            },
+                            beginAtZero: true
+                        },
+                        yPercent: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '%Sanskrit'
+                            },
+                            beginAtZero: true,
+                            suggestedMax: 100,
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const label = ctx.dataset.label || '';
+                                    const value = ctx.parsed.y;
+                                    if (ctx.dataset.yAxisID === 'yPercent') {
+                                        return `${label}: ${value.toFixed(2)}%`;
+                                    }
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('Failed to load dashboard stats', err);
+        }
+    }
+
+    // Initial load: get current user state
+    fetchCurrentUser();
+</script>
+</body>
+</html>

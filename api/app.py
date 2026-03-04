@@ -18,13 +18,11 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 
-
 AP90_BASE = "https://api.c-salt.uni-koeln.de/dicts/ap90/restful/entries"
 
 DATABASE_URL = os.environ.get("DATABASE_URL")  # Render sets this for Postgres
 FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:8080")
 SECRET_KEY = os.environ.get("SECRET_KEY", "change-this-secret-key")
-
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
@@ -56,6 +54,7 @@ def get_db():
 
 
 # ----- DB INIT -----
+
 
 def init_db():
     conn = get_db()
@@ -111,8 +110,14 @@ def init_db():
     )
 
     # Seed roles
-    cur.execute("INSERT INTO roles (name) VALUES (%s) ON CONFLICT (name) DO NOTHING;", ("admin",))
-    cur.execute("INSERT INTO roles (name) VALUES (%s) ON CONFLICT (name) DO NOTHING;", ("editor",))
+    cur.execute(
+        "INSERT INTO roles (name) VALUES (%s) ON CONFLICT (name) DO NOTHING;",
+        ("admin",),
+    )
+    cur.execute(
+        "INSERT INTO roles (name) VALUES (%s) ON CONFLICT (name) DO NOTHING;",
+        ("editor",),
+    )
 
     # Seed default admin user if no users exist
     cur.execute("SELECT COUNT(*) AS c FROM users;")
@@ -139,6 +144,7 @@ def init_db():
 
 
 # ----- USER CLASS & HELPERS -----
+
 
 class User(UserMixin):
     def __init__(self, user_id, username, is_active=True):
@@ -188,7 +194,9 @@ def roles_required(*roles):
             if not any(r in user_roles for r in roles):
                 return jsonify({"error": "forbidden"}), 403
             return fn(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -202,12 +210,15 @@ def can_modify_lookup(created_by_user_id) -> bool:
         return True
 
     if "editor" in roles:
-        return created_by_user_id is not None and int(created_by_user_id) == int(current_user.id)
+        return created_by_user_id is not None and int(created_by_user_id) == int(
+            current_user.id
+        )
 
     return False
 
 
 # ----- AUTH ROUTES -----
+
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -270,7 +281,89 @@ def me():
     ), 200
 
 
+# --- NEW: Password management ---
+
+
+@app.route("/api/change_password", methods=["POST"])
+@login_required
+def change_password():
+    """
+    Logged-in user changes their own password.
+    Body: { "oldPassword": "...", "newPassword": "..." }
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    old_pw = data.get("oldPassword") or ""
+    new_pw = data.get("newPassword") or ""
+
+    if not old_pw or not new_pw:
+        return jsonify({"error": "oldPassword and newPassword required"}), 400
+
+    # Basic guardrails (adjust as you like)
+    if len(new_pw) < 8:
+        return jsonify({"error": "newPassword must be at least 8 characters"}), 400
+    if old_pw == new_pw:
+        return jsonify({"error": "newPassword must be different"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT password_hash FROM users WHERE id = %s;", (current_user.id,))
+    row = cur.fetchone()
+
+    if not row:
+        conn.close()
+        return jsonify({"error": "user not found"}), 404
+
+    if not check_password_hash(row["password_hash"], old_pw):
+        conn.close()
+        return jsonify({"error": "invalid old password"}), 401
+
+    cur.execute(
+        "UPDATE users SET password_hash = %s WHERE id = %s;",
+        (generate_password_hash(new_pw), current_user.id),
+    )
+    conn.commit()
+    conn.close()
+
+    return jsonify({"status": "password_updated"}), 200
+
+
+@app.route("/api/admin/set_password", methods=["POST"])
+@roles_required("admin")
+def admin_set_password():
+    """
+    Admin sets password for any user (admin/editor/etc).
+    Body: { "username": "editor1", "newPassword": "..." }
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    username = (data.get("username") or "").strip()
+    new_pw = data.get("newPassword") or ""
+
+    if not username or not new_pw:
+        return jsonify({"error": "username and newPassword required"}), 400
+
+    if len(new_pw) < 8:
+        return jsonify({"error": "newPassword must be at least 8 characters"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM users WHERE username = %s;", (username,))
+    target = cur.fetchone()
+    if not target:
+        conn.close()
+        return jsonify({"error": "user not found"}), 404
+
+    cur.execute(
+        "UPDATE users SET password_hash = %s WHERE username = %s;",
+        (generate_password_hash(new_pw), username),
+    )
+    conn.commit()
+    conn.close()
+
+    return jsonify({"status": "password_set", "username": username}), 200
+
+
 # ----- BUSINESS ROUTES -----
+
 
 @app.route("/api/lookup_or_history", methods=["GET"])
 def lookup_or_history():
@@ -379,7 +472,15 @@ def save_lookup():
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
-        (root, meaning, best_headword, similarity_score, language, distance_to_root, current_user.id),
+        (
+            root,
+            meaning,
+            best_headword,
+            similarity_score,
+            language,
+            distance_to_root,
+            current_user.id,
+        ),
     )
     new_id = cur.fetchone()["id"]
     conn.commit()

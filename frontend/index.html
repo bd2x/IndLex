@@ -536,6 +536,7 @@
                     <label for="message">Message:</label>
                     <textarea id="message" rows="5" required></textarea>
                     <button type="submit">Send</button>
+                    <p id="contact-status" class="hidden"></p>
                 </form>
             </section>
         </div>
@@ -729,13 +730,47 @@
 
         await lookupRootInDictionary(root, rootMeaning, language);
     });
-
+/*
     document.getElementById('contact-form').addEventListener('submit', (event) => {
         event.preventDefault();
         const name = document.getElementById('name').value;
         alert(`Thanks, ${name}! Message sent successfully. (Demo mode)`);
         event.target.reset();
     });
+*/
+    document.getElementById("contact-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("contact-status");
+  statusEl.classList.remove("hidden");
+  statusEl.textContent = "Sending...";
+
+  const payload = {
+    name: document.getElementById("name").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    message: document.getElementById("message").value.trim(),
+  };
+
+  try {
+    const res = await fetch(`${APIBASE}/api/contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      statusEl.textContent = `Send failed (${res.status}): ${text}`;
+      return;
+    }
+
+    statusEl.textContent = "Sent. Thanks!";
+    event.target.reset();
+  } catch (err) {
+    statusEl.textContent = `Send failed: ${String(err)}`;
+  }
+});
+
 
     document.getElementById('refresh-history').addEventListener('click', () => {
         loadStats();

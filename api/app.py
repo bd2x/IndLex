@@ -18,6 +18,14 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
+import re
+
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+CONTACT_TO_EMAIL = os.environ.get("CONTACT_TO_EMAIL")
+CONTACT_FROM_EMAIL = os.environ.get("CONTACT_FROM_EMAIL")
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
 
 AP90_BASE = "https://api.c-salt.uni-koeln.de/dicts/ap90/restful/entries"
 
@@ -833,6 +841,65 @@ def stats():
     finally:
         if conn:
             put_conn(conn)
+
+
+# ---------------------------
+# Contact -> email (SendGrid)
+# ---------------------------
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+@app.route("/api/contact", methods=["POST"])
+def contact():
+    data = request.get_json(force=True, silent=True) or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip()
+    message = (data.get("message") or "").strip()
+
+    if not name or not email or not message:
+        return jsonify({"error": "name, email, message required"}), 400
+    if len(name) > 120 or len(email) > 200 or len(message) > 5000:
+        return jsonify({"error": "field too long"}), 400
+    if not _EMAIL_RE.match(email):
+        return jsonify({"error": "invalid email"}), 400
+
+    if not (SENDGRID_API_KEY and CONTACT_TO_EMAIL and CONTACT_FROM_EMAIL):
+        return jsonify({"error": "email_not_configured"}), 500
+
+    payload = {
+        "personalizations": [
+            {"to": [{"email": CONTACT_TO_EMAIL}], "subject": f"IndLex contact from {name}"}
+        ],
+        "from": {"email": CONTACT_FROM_EMAIL},
+        "reply_to": {"email": email},
+        "content": [
+            {
+                "type": "text/plain",
+                "value": f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}\n",
+            }
+        ],
+    }
+
+    try:
+        r = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={
+                "Authorization": f"Bearer {SENDGRID_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=10,
+        )
+    except Exception as e:
+        return jsonify({"error": "send_failed", "detail": str(e)}), 502
+
+    # SendGrid commonly returns 202 Accepted on success
+    if r.status_code not in (200, 202):
+        return jsonify({"error": "send_failed", "status": r.status_code, "detail": r.text}), 502
+
+    return jsonify({"status": "sent"}), 200
+
 
 
 if __name__ == "__main__":

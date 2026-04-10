@@ -90,7 +90,15 @@ def init_pool():
 
 def get_conn():
     init_pool()
-    return _pool.getconn()
+    conn = _pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+    except psycopg2.OperationalError:
+        # Connection is dead; discard and open a new one
+        pool.putconn(conn, close=True)
+        conn = psycopg2.connect(dsn=DATABASE_URL)
+    return conn
 
 
 def put_conn(conn):

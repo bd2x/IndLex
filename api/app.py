@@ -667,7 +667,7 @@ def lookup_or_history():
             params={
                 "field": "xml",
                 "query": meaning,
-                "querytype": "term",
+                "query_type": "term",
                 "size": 100,
             },
             headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 IndLex/1.0",},

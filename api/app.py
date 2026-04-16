@@ -606,7 +606,7 @@ def admin_set_roles(user_id: int):
 # ---------------------------
 # Business routes (ported)
 # ---------------------------
-
+### updated on 4/15/2026 ###
 @app.route("/api/lookup_or_history", methods=["GET"])
 def lookup_or_history():
     root = (request.args.get("root") or "").strip()
@@ -614,7 +614,7 @@ def lookup_or_history():
     language = (request.args.get("language") or "").strip()
 
     if not root:
-        return jsonify({"error": "missing root parameter"}), 400
+        return jsonify(error="missing root parameter"), 400
 
     conn = None
     try:
@@ -624,11 +624,11 @@ def lookup_or_history():
         if language:
             cur.execute(
                 """
-                SELECT id, root, meaning, best_headword, similarity_score,
-                       distance_to_root, created_at, language, created_by_user_id
+                SELECT id, root, meaning, bestheadword, similarityscore,
+                       distancetoroot, createdat, language, createdbyuserid
                 FROM lookups
-                WHERE root=%s AND (language=%s OR language IS NULL)
-                ORDER BY created_at DESC
+                WHERE root = %s AND (language = %s OR language IS NULL)
+                ORDER BY createdat DESC
                 LIMIT 1
                 """,
                 (root, language),
@@ -636,45 +636,136 @@ def lookup_or_history():
         else:
             cur.execute(
                 """
-                SELECT id, root, meaning, best_headword, similarity_score,
-                       distance_to_root, created_at, language, created_by_user_id
+                SELECT id, root, meaning, bestheadword, similarityscore,
+                       distancetoroot, createdat, language, createdbyuserid
                 FROM lookups
-                WHERE root=%s
-                ORDER BY created_at DESC
+                WHERE root = %s
+                ORDER BY createdat DESC
                 LIMIT 1
                 """,
                 (root,),
             )
 
         row = cur.fetchone()
-        if row:
-            row["source"] = "db"
-            return jsonify(row), 200
-
+    except Exception as e:
+        print("DB error in lookup_or_history:", repr(e))
+        return jsonify(error="db_error", detail=str(e)), 502
     finally:
         if conn:
             put_conn(conn)
 
-    # No DB record: call AP90
+    if row:
+        row["source"] = "db"
+        return jsonify(row), 200
+
     if not meaning:
-        return jsonify({"error": "no DB record and missing meaning to query AP90"}), 400
+        return jsonify(error="no DB record and missing meaning to query AP90"), 400
 
     try:
         resp = requests.get(
-            AP90_BASE,
-            params={"field": "xml", "query": meaning, "query_type": "term", "size": 100},
+            AP90BASE,
+            params={
+                "field": "xml",
+                "query": meaning,
+                "querytype": "term",
+                "size": 100,
+            },
             headers={"Accept": "application/json"},
-            timeout=10,
+            timeout=15,
         )
     except Exception as e:
-        return jsonify({"error": "upstream error", "detail": str(e)}), 502
+        print("AP90 request failed:", repr(e))
+        return jsonify(error="upstream_error", detail=str(e)), 502
+
+    if not resp.ok:
+        print("AP90 non-200:", resp.status_code, resp.text[:500])
+        return jsonify(
+            error="ap90_error",
+            status=resp.status_code,
+            body=resp.text[:500]
+        ), 502
 
     try:
         data = resp.json()
     except ValueError:
-        return resp.text, resp.status_code, {"Content-Type": "text/plain; charset=utf-8"}
+        print("AP90 non-JSON:", resp.text[:500])
+        return jsonify(
+            error="ap90_not_json",
+            status=resp.status_code,
+            body=resp.text[:500]
+        ), 502
 
-    return jsonify({"source": "ap90", "raw": data}), resp.status_code
+    return jsonify(source="ap90", raw=data), 200
+
+##older working route prior to 4/15/2026##
+# @app.route("/api/lookup_or_history", methods=["GET"])
+# def lookup_or_history():
+#     root = (request.args.get("root") or "").strip()
+#     meaning = (request.args.get("meaning") or "").strip()
+#     language = (request.args.get("language") or "").strip()
+
+#     if not root:
+#         return jsonify({"error": "missing root parameter"}), 400
+
+#     conn = None
+#     try:
+#         conn = get_conn()
+#         cur = conn.cursor(cursor_factory=RealDictCursor)
+
+#         if language:
+#             cur.execute(
+#                 """
+#                 SELECT id, root, meaning, best_headword, similarity_score,
+#                        distance_to_root, created_at, language, created_by_user_id
+#                 FROM lookups
+#                 WHERE root=%s AND (language=%s OR language IS NULL)
+#                 ORDER BY created_at DESC
+#                 LIMIT 1
+#                 """,
+#                 (root, language),
+#             )
+#         else:
+#             cur.execute(
+#                 """
+#                 SELECT id, root, meaning, best_headword, similarity_score,
+#                        distance_to_root, created_at, language, created_by_user_id
+#                 FROM lookups
+#                 WHERE root=%s
+#                 ORDER BY created_at DESC
+#                 LIMIT 1
+#                 """,
+#                 (root,),
+#             )
+
+#         row = cur.fetchone()
+#         if row:
+#             row["source"] = "db"
+#             return jsonify(row), 200
+
+#     finally:
+#         if conn:
+#             put_conn(conn)
+
+#     # No DB record: call AP90
+#     if not meaning:
+#         return jsonify({"error": "no DB record and missing meaning to query AP90"}), 400
+
+#     try:
+#         resp = requests.get(
+#             AP90_BASE,
+#             params={"field": "xml", "query": meaning, "query_type": "term", "size": 100},
+#             headers={"Accept": "application/json"},
+#             timeout=10,
+#         )
+#     except Exception as e:
+#         return jsonify({"error": "upstream error", "detail": str(e)}), 502
+
+#     try:
+#         data = resp.json()
+#     except ValueError:
+#         return resp.text, resp.status_code, {"Content-Type": "text/plain; charset=utf-8"}
+
+#     return jsonify({"source": "ap90", "raw": data}), resp.status_code
 
 
 @app.route("/api/saveLookup", methods=["POST"])

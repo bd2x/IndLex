@@ -624,8 +624,8 @@ def lookup_or_history():
         if language:
             cur.execute(
                 """
-                SELECT id, root, meaning, bestheadword, similarityscore,
-                       distancetoroot, createdat, language, createdbyuserid
+                SELECT id, root, meaning, best_headword, similarity_score,
+                       distance_to_root, created_at, language, created_by_userid
                 FROM lookups
                 WHERE root = %s AND (language = %s OR language IS NULL)
                 ORDER BY createdat DESC
@@ -637,7 +637,7 @@ def lookup_or_history():
             cur.execute(
                 """
                 SELECT id, root, meaning, bestheadword, similarityscore,
-                       distancetoroot, createdat, language, createdbyuserid
+                       distance_to_root, created_at, language, created_by_userid
                 FROM lookups
                 WHERE root = %s
                 ORDER BY createdat DESC

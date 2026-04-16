@@ -663,7 +663,7 @@ def lookup_or_history():
 
     try:
         resp = requests.get(
-            AP90BASE,
+            AP90_BASE,
             params={
                 "field": "xml",
                 "query": meaning,

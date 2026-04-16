@@ -628,7 +628,7 @@ def lookup_or_history():
                        distance_to_root, created_at, language, created_by_user_id
                 FROM lookups
                 WHERE root = %s AND (language = %s OR language IS NULL)
-                ORDER BY createdat DESC
+                ORDER BY created_at DESC
                 LIMIT 1
                 """,
                 (root, language),
@@ -640,7 +640,7 @@ def lookup_or_history():
                        distance_to_root, created_at, language, created_by_user_id
                 FROM lookups
                 WHERE root = %s
-                ORDER BY createdat DESC
+                ORDER BY created_at DESC
                 LIMIT 1
                 """,
                 (root,),

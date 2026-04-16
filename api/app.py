@@ -670,7 +670,7 @@ def lookup_or_history():
                 "querytype": "term",
                 "size": 100,
             },
-            headers={"Accept": "application/json"},
+            headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 IndLex/1.0",},
             timeout=15,
         )
     except Exception as e:
